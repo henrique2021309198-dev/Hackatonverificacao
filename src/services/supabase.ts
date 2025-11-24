@@ -20,6 +20,8 @@ import type {
   User,
   Event,
   Registration,
+  EventCategory,
+  EventStatus,
 } from '../types';
 
 // ==================== FUNÇÕES DE MAPEAMENTO ====================
@@ -44,20 +46,20 @@ function mapEventoToEvent(evento: Evento): Event {
   return {
     id: evento.id.toString(),
     nome: evento.nome,
-    categoria: 'Workshop', // Placeholder - não existe no novo schema
+    categoria: (evento.categoria as EventCategory) || 'Workshop',
     descricao: evento.descricao,
     dataInicio: evento.data_inicio,
     dataFim: dataFim.toISOString(),
-    local: 'A definir', // Não existe no novo schema
-    capacidadeMaxima: 100, // Não existe no novo schema
-    vagas: 50, // Não existe no novo schema
+    local: evento.local || 'A definir',
+    capacidadeMaxima: evento.capacidade_maxima || 100,
+    vagas: evento.vagas_disponiveis ?? 50,
     gratuito: evento.valor_evento === 0,
     valor: evento.valor_evento > 0 ? evento.valor_evento : undefined,
-    imagemCapa: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
-    status: 'Publicado',
-    organizadorId: '1', // Não existe no novo schema
-    criadoEm: evento.data_inicio,
-    atualizadoEm: evento.data_inicio,
+    imagemCapa: evento.imagem_capa || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
+    status: (evento.status as EventStatus) || 'Publicado',
+    organizadorId: evento.organizador_id || '1',
+    criadoEm: evento.criado_em || evento.data_inicio,
+    atualizadoEm: evento.atualizado_em || evento.data_inicio,
   };
 }
 
@@ -452,6 +454,12 @@ export async function createEvent(eventData: Partial<CreateEventData>): Promise<
         valor_evento: eventData.valor_evento || 0,
         texto_certificado: eventData.texto_certificado!,
         perfil_academico_foco: eventData.perfil_academico_foco || 'todos',
+        // Novos campos
+        local: eventData.local || 'A definir',
+        capacidade_maxima: eventData.capacidade_maxima || 100,
+        vagas_disponiveis: eventData.vagas_disponiveis || eventData.capacidade_maxima || 100,
+        categoria: eventData.categoria || 'Workshop',
+        imagem_capa: eventData.imagem_capa || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
         // NÃO especificar ID - deixar o banco gerar automaticamente
       })
       .select()
@@ -573,6 +581,22 @@ export async function createRegistration(
       return { registration: null, error: 'Você já está inscrito neste evento' };
     }
 
+    // Verificar vagas disponíveis
+    const { data: evento, error: eventoError } = await supabase
+      .from('eventos')
+      .select('vagas_disponiveis, capacidade_maxima')
+      .eq('id', eventoId)
+      .single();
+
+    if (eventoError) {
+      console.error('Erro ao buscar evento:', eventoError);
+      return { registration: null, error: 'Erro ao verificar vagas do evento' };
+    }
+
+    if (evento.vagas_disponiveis <= 0) {
+      return { registration: null, error: 'Não há mais vagas disponíveis para este evento' };
+    }
+
     // Criar nova participação
     const { data, error } = await supabase
       .from('participacoes')
@@ -590,6 +614,20 @@ export async function createRegistration(
       console.error('Erro ao criar participação:', error);
       return { registration: null, error: error.message };
     }
+
+    // Decrementar vagas disponíveis
+    const novasVagas = evento.vagas_disponiveis - 1;
+    const { error: updateError } = await supabase
+      .from('eventos')
+      .update({ vagas_disponiveis: novasVagas })
+      .eq('id', eventoId);
+
+    if (updateError) {
+      console.error('Erro ao atualizar vagas:', updateError);
+      // Não retornar erro aqui, a inscrição já foi criada
+    }
+
+    console.log(`✅ Inscrição criada! Vagas disponíveis: ${novasVagas}`);
     
     return { 
       registration: mapParticipacaoToRegistration(data),

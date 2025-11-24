@@ -60,7 +60,8 @@ export function MyEventsPage({
     const eventEnded = new Date(registration.evento.dataFim) < now;
     const paymentOk =
       registration.evento.gratuito || registration.statusPagamento === 'Confirmado';
-    return eventEnded && paymentOk && registration.certificadoEmitido;
+    // Não precisa verificar certificadoEmitido - o certificado é gerado on-demand
+    return eventEnded && paymentOk;
   };
 
   const EventCard = ({ registration }: { registration: Registration & { evento: Event } }) => {

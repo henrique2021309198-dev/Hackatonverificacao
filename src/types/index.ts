@@ -42,6 +42,16 @@ export interface Evento {
   valor_evento: number; // numeric(10, 2)
   texto_certificado: string; // Template com placeholders
   perfil_academico_foco: string; // 'todos' ou perfil específico
+  // Novos campos adicionados
+  local?: string;
+  capacidade_maxima?: number;
+  vagas_disponiveis?: number;
+  categoria?: string;
+  imagem_capa?: string;
+  organizador_id?: string;
+  status?: string;
+  criado_em?: string;
+  atualizado_em?: string;
 }
 
 // Tabela: public.participacoes
@@ -114,6 +124,12 @@ export interface CreateEventData {
   valor_evento: number;
   texto_certificado: string;
   perfil_academico_foco: string;
+  // Novos campos
+  local?: string;
+  capacidade_maxima?: number;
+  vagas_disponiveis?: number;
+  categoria?: string;
+  imagem_capa?: string;
 }
 
 export interface UpdateEventData extends Partial<CreateEventData> {}

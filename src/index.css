@@ -1664,6 +1664,10 @@
     color: var(--color-yellow-700);
   }
 
+  .italic {
+    font-style: italic;
+  }
+
   .underline-offset-4 {
     text-underline-offset: 4px;
   }

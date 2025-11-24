@@ -116,7 +116,9 @@ function AppContent() {
   };
 
   const handleLogout = async () => {
+    console.log('🔴 handleLogout chamado');
     await logout();
+    console.log('🔴 logout() executado');
     toast.info('Você saiu da sua conta.');
   };
 
@@ -137,6 +139,12 @@ function AppContent() {
         valor_evento: eventData.valor || 0,
         texto_certificado: `Certificamos que {nome_participante} participou do evento {nome_evento} com carga horária de {carga_horaria} horas.`,
         perfil_academico_foco: 'todos',
+        // Novos campos
+        local: eventData.local || 'A definir',
+        capacidade_maxima: eventData.capacidadeMaxima || 100,
+        vagas_disponiveis: eventData.capacidadeMaxima || 100,
+        categoria: eventData.categoria || 'Workshop',
+        imagem_capa: eventData.imagemCapa,
       };
 
       const { createEvent } = await import('./services/supabase');
@@ -190,9 +198,14 @@ function AppContent() {
   };
 
   // Handlers de inscrição (User)
-  const handleRegisterForEvent = (eventId: string) => {
+  const handleRegisterForEvent = async (eventId: string) => {
     const event = events.find((e) => e.id === eventId);
     if (!event) return;
+
+    if (!user) {
+      toast.error('Você precisa estar logado para se inscrever!');
+      return;
+    }
 
     // Verificar se já está inscrito
     const alreadyRegistered = registrations.some(
@@ -210,26 +223,29 @@ function AppContent() {
     }
 
     if (event.gratuito) {
-      // Inscrição gratuita imediata
-      const newRegistration: Registration & { evento: Event } = {
-        id: `reg-${Date.now()}`,
-        eventoId: eventId,
-        usuarioId: user?.id || '1',
-        dataInscricao: new Date().toISOString(),
-        statusPagamento: 'Confirmado',
-        certificadoEmitido: false,
-        evento: event,
-      };
+      // Inscrição gratuita - salvar no banco
+      try {
+        const { createRegistration } = await import('./services/supabase');
+        const { registration, error } = await createRegistration(
+          parseInt(eventId),
+          user.id,
+          0
+        );
 
-      setRegistrations([newRegistration, ...registrations]);
-      
-      // Atualizar vagas
-      setEvents(
-        events.map((e) => (e.id === eventId ? { ...e, vagas: e.vagas - 1 } : e))
-      );
+        if (error) {
+          toast.error(`Erro ao realizar inscrição: ${error}`);
+          return;
+        }
 
-      toast.success('Inscrição realizada com sucesso!');
-      setUserSection('meus-eventos');
+        // Buscar dados atualizados
+        await loadUserData();
+
+        toast.success('Inscrição realizada com sucesso!');
+        setUserSection('meus-eventos');
+      } catch (err) {
+        console.error('Erro ao realizar inscrição:', err);
+        toast.error('Erro inesperado ao realizar inscrição.');
+      }
     } else {
       // Abrir modal de pagamento
       setEventToRegister(event);
@@ -237,39 +253,58 @@ function AppContent() {
     }
   };
 
-  const handleConfirmPayment = (paymentData: PaymentData) => {
-    // TODO: Integração com Supabase e gateway de pagamento
-    if (!eventToRegister) return;
+  const handleConfirmPayment = async (paymentData: PaymentData) => {
+    if (!eventToRegister || !user) return;
 
-    const newRegistration: Registration & { evento: Event } = {
-      id: `reg-${Date.now()}`,
-      eventoId: eventToRegister.id,
-      usuarioId: user?.id || '1',
-      dataInscricao: new Date().toISOString(),
-      statusPagamento: 'Confirmado',
-      valorPago: eventToRegister.valor,
-      certificadoEmitido: false,
-      evento: eventToRegister,
-    };
+    try {
+      const { createRegistration } = await import('./services/supabase');
+      const { registration, error } = await createRegistration(
+        parseInt(eventToRegister.id),
+        user.id,
+        eventToRegister.valor || 0
+      );
 
-    setRegistrations([newRegistration, ...registrations]);
-    
-    // Atualizar vagas
-    setEvents(
-      events.map((e) =>
-        e.id === eventToRegister.id ? { ...e, vagas: e.vagas - 1 } : e
-      )
-    );
+      if (error) {
+        toast.error(`Erro ao realizar inscrição: ${error}`);
+        return;
+      }
 
-    toast.success('Pagamento confirmado! Inscrição realizada com sucesso!');
-    setPaymentModalOpen(false);
-    setEventToRegister(null);
-    setUserSection('meus-eventos');
+      // Buscar dados atualizados
+      await loadUserData();
+
+      toast.success('Pagamento confirmado! Inscrição realizada com sucesso!');
+      setPaymentModalOpen(false);
+      setEventToRegister(null);
+      setUserSection('meus-eventos');
+    } catch (err) {
+      console.error('Erro ao realizar inscrição:', err);
+      toast.error('Erro inesperado ao realizar inscrição.');
+    }
   };
 
-  const handleDownloadCertificate = (registrationId: string) => {
-    // TODO: Integração com Supabase para gerar/baixar certificado
-    toast.success('Certificado baixado com sucesso!');
+  const handleDownloadCertificate = async (registrationId: string) => {
+    try {
+      // Buscar a inscrição específica
+      const registration = registrations.find((r) => r.id === registrationId);
+      
+      if (!registration || !user) {
+        toast.error('Erro ao buscar dados do certificado.');
+        return;
+      }
+
+      // Importar e chamar serviço de certificados
+      const { downloadCertificate } = await import('./services/certificates');
+      const result = await downloadCertificate(registration, user);
+
+      if (result.success) {
+        toast.success('Certificado gerado com sucesso!');
+      } else {
+        toast.error(result.error || 'Erro ao gerar certificado.');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar certificado:', error);
+      toast.error('Erro inesperado ao gerar certificado.');
+    }
   };
 
   // Handlers de perfil
@@ -299,6 +334,7 @@ function AppContent() {
   useEffect(() => {
     if (isAuthenticated) {
       loadEvents();
+      loadUserData();
     }
   }, [isAuthenticated]);
 
@@ -311,6 +347,26 @@ function AppContent() {
     } catch (err) {
       console.error('Erro ao carregar eventos:', err);
       toast.error('Erro ao carregar eventos.');
+    }
+  };
+
+  const loadUserData = async () => {
+    try {
+      const { getRegistrationsByUserId, getAllEvents } = await import('./services/supabase');
+      
+      // Recarregar eventos para ter vagas atualizadas
+      const loadedEvents = await getAllEvents();
+      setEvents(loadedEvents);
+      
+      // Carregar inscrições do usuário
+      if (user?.id) {
+        const userRegistrations = await getRegistrationsByUserId(user.id);
+        setRegistrations(userRegistrations);
+        console.log('✅ Inscrições carregadas do banco:', userRegistrations.length);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+      toast.error('Erro ao carregar dados.');
     }
   };
 

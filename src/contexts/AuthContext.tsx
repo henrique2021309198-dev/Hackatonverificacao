@@ -18,6 +18,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Debug: Monitorar mudanças no user state
+  useEffect(() => {
+    console.log('👤 User state mudou:', user ? `${user.nomeCompleto} (${user.role})` : 'null (deslogado)');
+    console.log('🔐 isAuthenticated seria:', !!user);
+  }, [user]);
+
   // Verificar se há sessão ativa ao carregar
   useEffect(() => {
     checkSession();
@@ -75,10 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('🔴 Iniciando logout...');
       await signOutService();
+      console.log('🔴 signOutService executado');
       setUser(null);
+      console.log('🔴 User state limpo (null)');
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error('❌ Erro ao fazer logout:', error);
     }
   };
 

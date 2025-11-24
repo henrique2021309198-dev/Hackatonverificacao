@@ -1,296 +1,247 @@
-# 🚀 SISTEMA DE EVENTOS ACADÊMICOS - GUIA RÁPIDO
+# 🎯 LEIA PRIMEIRO - CORREÇÃO DE ERROS
 
-## ⚡ PROBLEMAS DE LOGIN? LEIA ISTO PRIMEIRO!
+## ❌ PROBLEMAS COMUNS
 
-Se você está vendo erros como:
-- ❌ `Email not confirmed`
-- ❌ `Invalid login credentials`
-- ❌ `Tipo de usuário incorreto`
+### **Problema 1: Erro de RLS (Row-Level Security)**
 
-**👉 SOLUÇÃO RÁPIDA: Siga estas 3 etapas**
+```
+❌ new row violates row-level security policy for table "usuarios"
+```
 
----
-
-## 📋 ETAPA 1: Execute o Script de Correção (2 minutos)
-
-1. **Abra o Supabase:**
-   - https://app.supabase.com → Seu Projeto
-   - Menu lateral → **SQL Editor** → **New Query**
-
-2. **Cole o conteúdo de `/FIX_EMAIL_CONFIRMACAO.sql`**
-   - Abra o arquivo e copie TODO o conteúdo
-   - Cole no SQL Editor
-   - Clique em **RUN** (Ctrl+Enter)
-
-3. **Aguarde as mensagens de sucesso:**
-   ```
-   ✅ Usuário teste@exemplo.com criado com sucesso!
-   ✅ Admin admin@exemplo.com criado com sucesso!
-   ```
-
-**Esse script faz:**
-- ✅ Confirma todos os emails existentes
-- ✅ Sincroniza usuários entre auth.users e public.usuarios
-- ✅ Cria usuário de teste: `teste@exemplo.com` / `senha123`
-- ✅ Cria admin: `admin@exemplo.com` / `senha123`
+**Solução:** Execute `/supabase-fix-auth.sql`
 
 ---
 
-## 📋 ETAPA 2: Desabilite Confirmação de Email (1 minuto)
+### **Problema 2: Email not confirmed**
 
-1. **Supabase Dashboard** → **Authentication** → **Providers**
-2. Clique em **Email** (para expandir)
-3. **Desmarque:** "Enable email confirmations"
-4. Clique em **Save**
+```
+❌ Erro no login (Auth): AuthApiError: Email not confirmed
+```
 
-**Por quê?** Isso evita que novos cadastros precisem confirmar email.
+**Solução Rápida:**
+1. Execute: `/CONFIRMAR_TODOS_EMAILS.sql` no Supabase
+2. Desabilite confirmação: Authentication → Providers → Email → Desmarque "Confirm email"
 
----
-
-## 📋 ETAPA 3: Teste o Login (1 minuto)
-
-1. **Limpe o cache:**
-   - F12 → Console → cole:
-   ```javascript
-   localStorage.clear();
-   sessionStorage.clear();
-   location.reload();
-   ```
-
-2. **Faça login com:**
-
-   **Participante:**
-   - Email: `teste@exemplo.com`
-   - Senha: `senha123`
-   - Tipo: **Participante**
-
-   **Administrador:**
-   - Email: `admin@exemplo.com`
-   - Senha: `senha123`
-   - Tipo: **Administrador**
-
-3. **Verifique o console (F12):**
-   ```
-   🔐 Tentando fazer login...
-   ✅ Autenticação bem-sucedida...
-   ✅ Usuário encontrado...
-   ✅ Login bem-sucedido!
-   ```
+**Guia Completo:** `/GUIA_CONFIRMACAO_EMAIL.md`
 
 ---
 
-## ✅ Pronto! Login Funcionando!
+### **Problema 3: Vagas disponíveis não atualizam**
 
-Agora você pode:
-- ✅ Fazer login como participante ou admin
-- ✅ Criar novos usuários sem confirmação de email
-- ✅ Ver logs detalhados no console
+```
+❌ Usuário se inscreve mas as vagas continuam iguais
+```
+
+**Solução Rápida:**
+1. Execute: `/CRIAR_TRIGGER_VAGAS.sql` (cria sistema automático)
+2. Execute: `/CORRIGIR_VAGAS_EVENTOS.sql` (corrige eventos existentes)
+
+**Guia Completo:** `/GUIA_VAGAS_DISPONIVEIS.md`
 
 ---
 
-## 📚 Guias Detalhados
+## ✅ SOLUÇÃO RÁPIDA (5 MINUTOS)
 
-Se ainda houver problemas ou quiser entender melhor:
+### **1. Abra o Supabase:**
+https://app.supabase.com → Seu Projeto → SQL Editor
+
+### **2. Execute estes 4 scripts:**
+1. `/supabase-fix-auth.sql` (corrige RLS)
+2. `/CONFIRMAR_TODOS_EMAILS.sql` (confirma emails)
+3. `/CRIAR_TRIGGER_VAGAS.sql` (atualiza vagas automaticamente)
+4. `/CORRIGIR_VAGAS_EVENTOS.sql` (corrige vagas existentes)
+
+### **3. Desabilite confirmação de email:**
+Authentication → Providers → Email → ☐ Confirm email → Save
+
+### **4. Pronto!**
+O sistema vai funcionar normalmente.
+
+---
+
+## 📚 ARQUIVOS DISPONÍVEIS
+
+### 🔧 **Arquivos de Correção** (EXECUTE NO SUPABASE)
+
+| Arquivo | Descrição | Quando Usar |
+|---------|-----------|-------------|
+| `/supabase-fix-auth.sql` | ⭐ Correção principal | **USE ESTE PRIMEIRO** |
+| `/CORRIGIR_PERMISSOES_COMPLETO.sql` | Correção completa com permissões | Se ainda tiver erro após o primeiro |
+| `/DIAGNOSTICO_BANCO.sql` | Ver status do banco | Para entender o problema |
+
+### 📖 **Documentação**
 
 | Arquivo | Descrição |
 |---------|-----------|
-| **`/COMO_RESOLVER_ERROS_LOGIN.md`** | 🚨 Guia completo de troubleshooting |
-| **`/FIX_EMAIL_CONFIRMACAO.sql`** | ⚡ Script SQL de correção (EXECUTE PRIMEIRO!) |
-| **`/DESABILITAR_CONFIRMACAO_EMAIL.md`** | 🔧 Como desabilitar confirmação de email |
-| **`/CRIAR_USUARIO_ADMIN.md`** | 👑 Como criar administradores |
-| **`/TESTE_LOGIN_RAPIDO.md`** | ⚡ Scripts rápidos para teste |
-| **`/SOLUCAO_ERRO_LOGIN.md`** | 🔍 Soluções para erros específicos |
-| **`/criar-admin-simples.sql`** | 📝 SQL para transformar usuário em admin |
+| `/EXECUTE_AGORA.md` | Guia detalhado da solução |
+| `/GUIA_PASSO_A_PASSO.md` | Tutorial visual passo a passo |
+| `/LEIA_PRIMEIRO.md` | Este arquivo - índice geral |
+
+### 🧪 **Scripts de Teste**
+
+| Arquivo | Descrição | Quando Usar |
+|---------|-----------|-------------|
+| `/CRIAR_EVENTO_CONCLUIDO_SIMPLES.sql` | ⭐ Criar evento para testar certificado | Depois de corrigir o erro |
+| `/CRIAR_EVENTO_CONCLUIDO_TESTE.sql` | Versão alternativa (mais detalhes) | Opcional |
+| `/ADICIONAR_CAMPOS_EVENTOS.sql` | Adicionar campos na tabela eventos | Se campos estiverem faltando |
 
 ---
 
-## 🎯 Funcionalidades do Sistema
+## 🚀 PASSO A PASSO COMPLETO
 
-### **Área do Participante:**
-- 📅 Ver e se inscrever em eventos
-- 💳 Sistema de pagamento via PIX
-- 🎓 Meus Eventos e Certificados
-- 👤 Perfil do usuário
+### **Etapa 1: Corrigir o Erro RLS**
 
-### **Área do Administrador:**
-- 📊 Dashboard com estatísticas
-- ✏️ Criar e gerenciar eventos
-- 👥 Gerenciar usuários e inscrições
-- ✅ Confirmar pagamentos
-- 🎓 Emitir certificados
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- ⚛️ React + TypeScript
-- 🎨 Tailwind CSS + Shadcn/ui
-- 🗄️ Supabase (Auth + Database)
-- 🔐 Row Level Security (RLS)
-- 📱 Design Responsivo
-
----
-
-## 🗂️ Estrutura do Banco de Dados
-
-### **Tabelas:**
-- `usuarios` - Dados dos usuários (participantes e admins)
-- `eventos` - Eventos acadêmicos
-- `participacoes` - Inscrições em eventos
-- `certificados` - Certificados emitidos
-- `presencas_detalhes` - Controle de presença
-
-### **Perfis de Usuário:**
-- `participante` - Usuário normal
-- `administrador` - Usuário com acesso administrativo
-
-**IMPORTANTE:** Use `'administrador'` (completo), não "adm" ou "admin"!
-
----
-
-## 🔐 Segurança
-
-O sistema utiliza:
-- ✅ Supabase Auth para autenticação
-- ✅ Row Level Security (RLS) para controle de acesso
-- ✅ Políticas de segurança por perfil
-- ✅ Email confirmado automaticamente (desenvolvimento)
-- ⚠️ Para produção: habilitar confirmação de email + SMTP
-
----
-
-## 🚀 Como Executar o Projeto
-
-1. **Clone o repositório:**
-   ```bash
-   git clone [seu-repo]
-   cd [pasta-do-projeto]
-   ```
-
-2. **Instale as dependências:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure o Supabase:**
-   - Crie um projeto no Supabase
-   - Copie as credenciais para `/utils/supabase/info.tsx`
-   - Execute o script SQL de setup
-
-4. **Execute o projeto:**
-   ```bash
-   npm run dev
-   ```
-
-5. **Acesse:**
-   - http://localhost:5173 (ou a porta mostrada)
-
----
-
-## 📝 Tarefas Comuns
-
-### **Criar um Administrador:**
-```sql
-UPDATE public.usuarios
-SET perfil = 'administrador'
-WHERE email = 'seuemail@exemplo.com';
+```
+1. Abra: https://app.supabase.com
+2. Vá em: SQL Editor
+3. Cole: /supabase-fix-auth.sql
+4. Execute: Ctrl+Enter
+5. Veja: ✅ RLS desabilitado
 ```
 
-### **Resetar Senha:**
-```sql
-UPDATE auth.users
-SET encrypted_password = crypt('senha123', gen_salt('bf'))
-WHERE email = 'seuemail@exemplo.com';
+### **Etapa 2: Confirmar Todos os Emails**
+
+```
+1. Abra: https://app.supabase.com
+2. Vá em: SQL Editor
+3. Cole: /CONFIRMAR_TODOS_EMAILS.sql
+4. Execute: Ctrl+Enter
+5. Veja: ✅ Emails confirmados
 ```
 
-### **Confirmar Email:**
-```sql
-UPDATE auth.users
-SET email_confirmed_at = NOW()
-WHERE email = 'seuemail@exemplo.com';
+### **Etapa 3: Desabilitar Confirmação de Email**
+
+```
+1. Abra: https://app.supabase.com
+2. Vá em: Authentication → Providers → Email
+3. Desmarque: "Confirm email"
+4. Salve: Save
+5. Veja: ✅ Confirmação de email desabilitada
 ```
 
-### **Ver Todos os Usuários:**
-```sql
-SELECT u.nome, u.email, u.perfil,
-  CASE WHEN au.email_confirmed_at IS NOT NULL 
-    THEN '✅' ELSE '❌' END as confirmado
-FROM public.usuarios u
-JOIN auth.users au ON u.id = au.id
-ORDER BY u.criado_em DESC;
+### **Etapa 4: Testar o Sistema**
+
+```
+1. Volte para o sistema
+2. Tente criar uma conta
+3. Deve funcionar! ✅
+```
+
+### **Etapa 5: Criar Evento para Testar Certificado**
+
+```
+1. Abra: /CRIAR_EVENTO_CONCLUIDO_SIMPLES.sql
+2. Linha 15: Substitua 'SEU_EMAIL_AQUI' pelo seu email
+3. Cole no SQL Editor do Supabase
+4. Execute
+5. Veja: ✅ Evento criado
+```
+
+### **Etapa 6: Baixar Certificado**
+
+```
+1. No sistema, vá em: "Meus Eventos"
+2. Clique na aba: "Concluídos"
+3. Veja: "Workshop de Python Avançado"
+4. Clique: "Baixar Certificado" 🎓
 ```
 
 ---
 
-## 🆘 Suporte
+## 🔍 ENTENDENDO O PROBLEMA
 
-**Problemas comuns já resolvidos:**
-- ✅ Multiple GoTrueClient instances
-- ✅ Email not confirmed
-- ✅ Invalid login credentials
-- ✅ Tipo de usuário incorreto
-- ✅ Usuários órfãos (auth.users sem public.usuarios)
+### **O que é RLS?**
 
-**Se encontrar um problema novo:**
-1. Verifique o console do navegador (F12)
-2. Procure os logs com 🔐, ✅, ❌
-3. Consulte `/COMO_RESOLVER_ERROS_LOGIN.md`
-4. Execute `/FIX_EMAIL_CONFIRMACAO.sql`
+RLS = **Row-Level Security** (Segurança em Nível de Linha)
 
----
+É um recurso do Supabase/PostgreSQL que controla **quem pode ver e modificar cada linha** de uma tabela.
 
-## 📅 Próximas Features
+### **Por que está bloqueando?**
 
-- [ ] Upload de imagens para eventos
-- [ ] Geração automática de certificados em PDF
-- [ ] Sistema de notificações
-- [ ] QR Code para check-in
-- [ ] Exportação de relatórios
-- [ ] Integração com Google Calendar
+O sistema está tentando criar usuários, mas o RLS está configurado incorretamente e está bloqueando todas as operações.
+
+### **A solução é segura?**
+
+✅ **Para desenvolvimento/protótipo:** SIM! Desabilitar RLS é normal.
+
+⚠️ **Para produção:** Você deveria configurar políticas RLS específicas.
 
 ---
 
-## 🎯 Status do Projeto
+## ❓ PERGUNTAS FREQUENTES
 
-- ✅ Sistema de autenticação funcionando
-- ✅ CRUD de eventos completo
-- ✅ Sistema de inscrições
-- ✅ Dashboard administrativo
-- ✅ Perfil do usuário
-- ✅ Design responsivo
-- ⚠️ Geração de certificados (em desenvolvimento)
-- ⚠️ Pagamentos PIX (em desenvolvimento)
+### **1. É seguro desabilitar o RLS?**
 
----
+Para um protótipo ou ambiente de desenvolvimento, **sim!** 
 
-## 🔥 ATENÇÃO: Problemas Conhecidos
+Para produção, você deve criar políticas específicas depois.
 
-### **1. Email not confirmed**
-**Status:** ✅ RESOLVIDO
-**Solução:** Execute `/FIX_EMAIL_CONFIRMACAO.sql`
+### **2. Vou perder meus dados?**
 
-### **2. Invalid login credentials**
-**Status:** ✅ RESOLVIDO
-**Solução:** Execute `/FIX_EMAIL_CONFIRMACAO.sql`
+**Não!** Estes scripts apenas alteram permissões, não deletam dados.
 
-### **3. Multiple GoTrueClient**
-**Status:** ✅ RESOLVIDO
-**Solução:** Implementado singleton pattern
+### **3. Posso reverter depois?**
 
----
+**Sim!** Para reabilitar o RLS:
 
-## ✅ Checklist Antes de Começar
+```sql
+ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+```
 
-- [ ] Executei `/FIX_EMAIL_CONFIRMACAO.sql` no Supabase
-- [ ] Desabilitei confirmação de email no Dashboard
-- [ ] Limpei o cache do navegador
-- [ ] Testei login com `teste@exemplo.com` / `senha123`
-- [ ] Testei login com `admin@exemplo.com` / `senha123`
-- [ ] Vi os logs de sucesso no console (F12)
-- [ ] Li este arquivo completamente 😊
+### **4. O que fazer se continuar com erro?**
+
+1. Execute: `/DIAGNOSTICO_BANCO.sql`
+2. Me envie o resultado
+3. Execute: `/CORRIGIR_PERMISSOES_COMPLETO.sql`
+
+### **5. Preciso fazer isso toda vez?**
+
+**Não!** Apenas uma vez. Depois disso o sistema funciona normalmente.
 
 ---
 
-**Pronto! Você está preparado para usar o sistema! 🎉**
+## 📞 SUPORTE
 
-**Dúvidas? Consulte os guias na pasta raiz do projeto!**
+### **Erro ainda persiste?**
+
+Execute `/DIAGNOSTICO_BANCO.sql` e me envie:
+- Mensagens de erro completas
+- Resultado do diagnóstico
+- Qual arquivo você executou
+
+### **Tudo funcionou?**
+
+Ótimo! Agora você pode:
+- ✅ Criar usuários
+- ✅ Criar eventos
+- ✅ Fazer inscrições
+- ✅ Gerar certificados
+
+---
+
+## ✅ CHECKLIST
+
+- [ ] Li este arquivo (LEIA_PRIMEIRO.md)
+- [ ] Executei `/supabase-fix-auth.sql` no Supabase
+- [ ] Vi a mensagem "✅ RLS desabilitado"
+- [ ] Executei `/CONFIRMAR_TODOS_EMAILS.sql` no Supabase
+- [ ] Desabilitei confirmação de email
+- [ ] Testei criar uma conta no sistema
+- [ ] (Opcional) Criei evento concluído
+- [ ] (Opcional) Testei baixar certificado
+- [ ] Sistema funcionando! 🎉
+
+---
+
+## 🎯 RESUMO
+
+| Problema | Solução |
+|----------|---------|
+| ❌ Erro RLS | Execute `/supabase-fix-auth.sql` |
+| ❌ Email not confirmed | Execute `/CONFIRMAR_TODOS_EMAILS.sql` e desabilite confirmação |
+| ✅ Sistema funcionando | Teste criar conta |
+| 🎓 Testar certificado | Execute `/CRIAR_EVENTO_CONCLUIDO_SIMPLES.sql` |
+
+---
+
+**Começe agora! Execute `/supabase-fix-auth.sql` e `/CONFIRMAR_TODOS_EMAILS.sql` no Supabase.** 🚀
