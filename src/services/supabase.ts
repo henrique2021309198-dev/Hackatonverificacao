@@ -253,6 +253,8 @@ export async function signUp(data: SignupData): Promise<{ user: User; error: nul
 
 export async function signIn(credentials: LoginCredentials): Promise<{ user: User; error: null } | { user: null; error: string }> {
   try {
+    console.log('🔐 Tentando fazer login:', { email: credentials.email, tipo: credentials.tipo });
+    
     // 1. Autenticar com Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: credentials.email,
@@ -260,13 +262,32 @@ export async function signIn(credentials: LoginCredentials): Promise<{ user: Use
     });
 
     if (authError) {
-      console.error('Erro no login:', authError);
-      return { user: null, error: authError.message };
+      console.error('❌ Erro no login (Auth):', authError);
+      
+      // Mensagens de erro mais amigáveis
+      if (authError.message.includes('Invalid login credentials')) {
+        return { 
+          user: null, 
+          error: 'Email ou senha incorretos. Verifique suas credenciais e tente novamente.' 
+        };
+      }
+      
+      if (authError.message.includes('Email not confirmed')) {
+        return { 
+          user: null, 
+          error: 'Por favor, confirme seu email antes de fazer login.' 
+        };
+      }
+      
+      return { user: null, error: `Erro ao fazer login: ${authError.message}` };
     }
 
     if (!authData.user) {
-      return { user: null, error: 'Credenciais inválidas' };
+      console.error('❌ Auth não retornou usuário');
+      return { user: null, error: 'Email ou senha incorretos.' };
     }
+
+    console.log('✅ Autenticação bem-sucedida. ID do usuário:', authData.user.id);
 
     // 2. Buscar dados do usuário na tabela usuarios
     const { data: usuario, error: userError } = await supabase
@@ -276,20 +297,22 @@ export async function signIn(credentials: LoginCredentials): Promise<{ user: Use
       .single();
 
     if (userError || !usuario) {
-      console.error('Erro ao buscar usuário:', userError);
-      return { user: null, error: 'Usuário não encontrado' };
+      console.error('❌ Erro ao buscar usuário na tabela:', userError);
+      return { 
+        user: null, 
+        error: 'Usuário não encontrado no sistema. Por favor, entre em contato com o suporte.' 
+      };
     }
 
-    // 3. Verificar se o perfil corresponde ao tipo solicitado
-    const expectedRole = credentials.tipo === 'administrador' ? 'administrador' : 'participante';
-    if (usuario.perfil !== expectedRole) {
-      return { user: null, error: 'Tipo de usuário incorreto' };
-    }
+    console.log('✅ Usuário encontrado:', { nome: usuario.nome, perfil: usuario.perfil });
 
+    // O usuário sempre entra com seu perfil real do banco
+    // Ignoramos o tipo selecionado na UI (apenas interface)
+    console.log('✅ Login bem-sucedido!');
     return { user: mapUsuarioToUser(usuario), error: null };
   } catch (err) {
-    console.error('Erro inesperado no login:', err);
-    return { user: null, error: 'Erro inesperado ao fazer login' };
+    console.error('❌ Erro inesperado no login:', err);
+    return { user: null, error: 'Erro inesperado ao fazer login. Verifique sua conexão.' };
   }
 }
 
@@ -415,6 +438,8 @@ export async function getEventById(eventId: string): Promise<Event | null> {
 
 export async function createEvent(eventData: Partial<CreateEventData>): Promise<{ event: Event; error: null } | { event: null; error: string }> {
   try {
+    console.log('📝 Criando evento com dados:', eventData);
+    
     const { data, error } = await supabase
       .from('eventos')
       .insert({
@@ -427,18 +452,29 @@ export async function createEvent(eventData: Partial<CreateEventData>): Promise<
         valor_evento: eventData.valor_evento || 0,
         texto_certificado: eventData.texto_certificado!,
         perfil_academico_foco: eventData.perfil_academico_foco || 'todos',
+        // NÃO especificar ID - deixar o banco gerar automaticamente
       })
       .select()
       .single();
     
     if (error) {
-      console.error('Erro ao criar evento:', error);
+      console.error('❌ Erro ao criar evento:', error);
+      
+      // Se for erro de duplicate key, dar uma mensagem mais clara
+      if (error.code === '23505') {
+        return { 
+          event: null, 
+          error: 'Erro ao gerar ID do evento. Tente novamente em alguns segundos.' 
+        };
+      }
+      
       return { event: null, error: error.message };
     }
     
+    console.log('✅ Evento criado no banco:', data);
     return { event: mapEventoToEvent(data), error: null };
   } catch (err: any) {
-    console.error('Erro inesperado ao criar evento:', err);
+    console.error('❌ Erro inesperado ao criar evento:', err);
     return { event: null, error: err.message };
   }
 }

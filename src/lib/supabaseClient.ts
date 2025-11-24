@@ -11,13 +11,32 @@ import { projectId, publicAnonKey } from '../utils/supabase/info';
 // URL do projeto Supabase
 const supabaseUrl = `https://${projectId}.supabase.co`;
 
-// Criar cliente Supabase com a chave pública
-export const supabase = createClient(supabaseUrl, publicAnonKey);
+// ==================== SINGLETON - UMA ÚNICA INSTÂNCIA ====================
+// Criar apenas UMA instância do cliente Supabase para evitar warnings
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
+
+export const supabase = (() => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, publicAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'sb-auth-token',
+      },
+    });
+  }
+  return supabaseInstance;
+})();
 
 // Cliente admin para operações que requerem service_role (como criar usuários com email confirmado)
 // IMPORTANTE: Este cliente só deve ser usado no backend ou para operações específicas de admin
+// Usamos uma chave de storage diferente para evitar conflitos
+let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+
 const getServiceRoleKey = () => {
-  // Tenta pegar do environment variables (pode estar disponível via import.meta.env ou process.env)
+  // Tenta pegar do environment variables
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY) {
     return import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
   }
@@ -25,12 +44,19 @@ const getServiceRoleKey = () => {
   return publicAnonKey;
 };
 
-export const supabaseAdmin = createClient(supabaseUrl, getServiceRoleKey(), {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+export const supabaseAdmin = (() => {
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(supabaseUrl, getServiceRoleKey(), {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+        storageKey: 'sb-admin-auth-token', // Chave diferente!
+      },
+    });
   }
-});
+  return supabaseAdminInstance;
+})();
 
 // Tipo para o banco de dados (para type-safety)
 export type Database = {

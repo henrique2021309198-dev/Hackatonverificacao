@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { SignupPage } from './components/SignupPage';
@@ -121,19 +121,43 @@ function AppContent() {
   };
 
   // Handlers de eventos (Admin)
-  const handleCreateEvent = (eventData: Partial<Event>) => {
-    // TODO: Integração com Supabase
-    const newEvent: Event = {
-      id: `event-${Date.now()}`,
-      ...eventData,
-      organizadorId: user?.id || '1',
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString(),
-    } as Event;
+  const handleCreateEvent = async (eventData: Partial<Event>) => {
+    try {
+      // Mapear campos do formulário para o formato do banco
+      const createData = {
+        nome: eventData.nome!,
+        descricao: eventData.descricao!,
+        data_inicio: eventData.dataInicio!,
+        duracao_horas: 
+          eventData.dataFim && eventData.dataInicio
+            ? Math.round((new Date(eventData.dataFim).getTime() - new Date(eventData.dataInicio).getTime()) / (1000 * 60 * 60))
+            : 0,
+        limite_faltas_percentual: 25, // Padrão: 25% de faltas permitidas
+        chave_pix: null,
+        valor_evento: eventData.valor || 0,
+        texto_certificado: `Certificamos que {nome_participante} participou do evento {nome_evento} com carga horária de {carga_horaria} horas.`,
+        perfil_academico_foco: 'todos',
+      };
 
-    setEvents([newEvent, ...events]);
-    setAdminSection('eventos');
-    toast.success('Evento criado com sucesso!');
+      const { createEvent } = await import('./services/supabase');
+      const { event, error } = await createEvent(createData);
+
+      if (error) {
+        toast.error(`Erro ao criar evento: ${error}`);
+        return;
+      }
+
+      // Atualizar lista local
+      if (event) {
+        setEvents([event, ...events]);
+      }
+      
+      setAdminSection('eventos');
+      toast.success('Evento criado com sucesso no banco de dados!');
+    } catch (err) {
+      console.error('Erro ao criar evento:', err);
+      toast.error('Erro inesperado ao criar evento.');
+    }
   };
 
   const handleEditEvent = (eventId: string) => {
@@ -141,10 +165,23 @@ function AppContent() {
     toast.info('Funcionalidade de edição em desenvolvimento.');
   };
 
-  const handleDeleteEvent = (eventId: string) => {
-    // TODO: Integração com Supabase
-    setEvents(events.filter((e) => e.id !== eventId));
-    toast.success('Evento excluído com sucesso!');
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const { deleteEvent } = await import('./services/supabase');
+      const { error } = await deleteEvent(eventId);
+
+      if (error) {
+        toast.error(`Erro ao excluir evento: ${error}`);
+        return;
+      }
+
+      // Atualizar lista local
+      setEvents(events.filter((e) => e.id !== eventId));
+      toast.success('Evento excluído com sucesso do banco de dados!');
+    } catch (err) {
+      console.error('Erro ao excluir evento:', err);
+      toast.error('Erro inesperado ao excluir evento.');
+    }
   };
 
   const handleViewRegistrations = (eventId: string) => {
@@ -256,6 +293,25 @@ function AppContent() {
   const handleBackToEvents = () => {
     setSelectedUserEventId(null);
     setUserSection('home');
+  };
+
+  // Carregar eventos do banco de dados quando o usuário fizer login
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadEvents();
+    }
+  }, [isAuthenticated]);
+
+  const loadEvents = async () => {
+    try {
+      const { getAllEvents } = await import('./services/supabase');
+      const loadedEvents = await getAllEvents();
+      setEvents(loadedEvents);
+      console.log('✅ Eventos carregados do banco:', loadedEvents.length);
+    } catch (err) {
+      console.error('Erro ao carregar eventos:', err);
+      toast.error('Erro ao carregar eventos.');
+    }
   };
 
   // Loading state
