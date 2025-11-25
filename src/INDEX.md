@@ -6,6 +6,11 @@ Guia completo de navegação pela documentação do Sistema de Gerenciamento de 
 
 ## 🎯 Por Onde Começar?
 
+### **🚨 PROBLEMA URGENTE: F5 causa carregamento infinito?**
+👉 **[DEPLOY_INSTRUCTIONS.md](DEPLOY_INSTRUCTIONS.md)** - Solução em 2 minutos!
+
+---
+
 ### **👨‍💼 Sou Stakeholder/Gestor**
 1. 📖 **[README.md](README.md)** - Visão geral completa do sistema
 2. 🎥 Ver demonstração do sistema (se disponível)

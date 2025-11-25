@@ -2,6 +2,35 @@
 
 ## ❌ Site não carrega no publish
 
+### **Problema 0: F5 causa carregamento infinito** ⚠️ COMUM
+
+**Sintomas:**
+- Site funciona normalmente na primeira vez
+- Ao apertar F5, fica carregando infinitamente
+- Ao acessar uma rota diretamente (ex: `/eventos`), não carrega
+
+**Causa:** Servidor não está redirecionando todas as rotas para `index.html` (problema de SPA).
+
+**Solução Rápida:**
+```bash
+# Os arquivos de configuração já estão criados!
+# Basta fazer commit e push:
+
+git add vercel.json netlify.toml public/_redirects public/.htaccess
+git commit -m "fix: adiciona configuração de SPA rewrites"
+git push
+```
+
+**Leia o guia completo:** [FIX_F5_RELOAD.md](FIX_F5_RELOAD.md)
+
+**Arquivos criados automaticamente:**
+- ✅ `/vercel.json` - Para Vercel
+- ✅ `/netlify.toml` - Para Netlify  
+- ✅ `/public/_redirects` - Para Netlify (alternativo)
+- ✅ `/public/.htaccess` - Para Apache
+
+---
+
 ### **Problema 1: Página em branco**
 
 **Causa:** Arquivos essenciais faltando ou configuração incorreta.
