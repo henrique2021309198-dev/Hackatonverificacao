@@ -11,21 +11,31 @@ import { projectId, publicAnonKey } from '../utils/supabase/info';
 // URL do projeto Supabase
 const supabaseUrl = `https://${projectId}.supabase.co`;
 
+console.log('🔧 Inicializando Supabase Client...');
+console.log('📍 URL:', supabaseUrl);
+console.log('🔑 Anon Key disponível:', publicAnonKey ? 'Sim' : 'Não');
+
 // ==================== SINGLETON - UMA ÚNICA INSTÂNCIA ====================
 // Criar apenas UMA instância do cliente Supabase para evitar warnings
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
 export const supabase = (() => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, publicAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'sb-auth-token',
-      },
-    });
+    try {
+      supabaseInstance = createClient(supabaseUrl, publicAnonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          storageKey: 'sb-auth-token',
+        },
+      });
+      console.log('✅ Supabase Client inicializado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Supabase Client:', error);
+      throw error;
+    }
   }
   return supabaseInstance;
 })();

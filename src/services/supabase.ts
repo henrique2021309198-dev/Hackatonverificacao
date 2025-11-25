@@ -343,21 +343,37 @@ export async function updatePassword(newPassword: string): Promise<{ error: null
 
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    console.log('🔍 getCurrentUser: Iniciando busca...');
     
-    if (!authUser) return null;
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    console.log('🔍 getCurrentUser: Auth user obtido:', authUser ? authUser.id : 'null');
+    
+    if (!authUser) {
+      console.log('🔍 getCurrentUser: Nenhum usuário autenticado');
+      return null;
+    }
 
+    console.log('🔍 getCurrentUser: Buscando usuário na tabela usuarios...');
     const { data: usuario, error } = await supabase
       .from('usuarios')
       .select('*')
       .eq('id', authUser.id)
       .single();
 
-    if (error || !usuario) return null;
+    if (error) {
+      console.error('❌ getCurrentUser: Erro ao buscar usuário:', error);
+      return null;
+    }
+    
+    if (!usuario) {
+      console.error('❌ getCurrentUser: Usuário não encontrado na tabela');
+      return null;
+    }
 
+    console.log('✅ getCurrentUser: Usuário encontrado:', usuario.nome);
     return mapUsuarioToUser(usuario);
   } catch (err) {
-    console.error('Erro ao buscar usuário atual:', err);
+    console.error('❌ getCurrentUser: Erro inesperado:', err);
     return null;
   }
 }

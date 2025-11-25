@@ -29,6 +29,10 @@ export function EventDetailsPage({
     (dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24)
   );
 
+  // Verificar se o evento já terminou
+  const now = new Date();
+  const eventoTerminou = dataFim < now;
+
   return (
     <div className="space-y-6">
       {/* Botão Voltar */}
@@ -45,6 +49,13 @@ export function EventDetailsPage({
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        {eventoTerminou && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <Badge className="bg-red-600 text-white text-lg px-6 py-3">
+              Evento Encerrado
+            </Badge>
+          </div>
+        )}
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
           <Badge className="mb-2 bg-white/20 backdrop-blur-sm">
             {event.categoria}
@@ -203,6 +214,10 @@ export function EventDetailsPage({
               ) : vagasDisponiveis === 0 ? (
                 <Button className="w-full" variant="outline" disabled>
                   Vagas Esgotadas
+                </Button>
+              ) : eventoTerminou ? (
+                <Button className="w-full" variant="outline" disabled>
+                  Evento Encerrado
                 </Button>
               ) : (
                 <Button

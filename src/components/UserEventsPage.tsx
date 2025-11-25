@@ -54,7 +54,12 @@ export function UserEventsPage({ events, onEventClick }: UserEventsPageProps) {
     // Apenas eventos publicados
     const isPublished = event.status === 'Publicado';
 
-    return matchesSearch && matchesCategory && matchesType && isPublished;
+    // Apenas eventos que ainda não terminaram
+    const now = new Date();
+    const eventEndDate = new Date(event.dataFim);
+    const isNotExpired = eventEndDate >= now;
+
+    return matchesSearch && matchesCategory && matchesType && isPublished && isNotExpired;
   });
 
   return (

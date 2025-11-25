@@ -26,26 +26,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar se há sessão ativa ao carregar
   useEffect(() => {
-    checkSession();
+    let isMounted = true;
+    
+    const init = async () => {
+      if (!isMounted) return;
+      await checkSession();
+    };
+    
+    init();
 
     // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         console.log('Auth state changed:', event);
         
         if (event === 'SIGNED_IN' && session) {
           const currentUser = await getCurrentUser();
-          setUser(currentUser);
+          if (isMounted) setUser(currentUser);
         } else if (event === 'SIGNED_OUT') {
-          setUser(null);
+          if (isMounted) setUser(null);
         } else if (event === 'TOKEN_REFRESHED' && session) {
           const currentUser = await getCurrentUser();
-          setUser(currentUser);
+          if (isMounted) setUser(currentUser);
         }
       }
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -53,12 +63,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSession = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUser();
+      console.log('🔍 Verificando sessão...');
+      
+      // Adicionar timeout de 5 segundos
+      const timeoutPromise = new Promise<User | null>((resolve) => {
+        setTimeout(() => {
+          console.log('⏱️ Timeout ao verificar sessão');
+          resolve(null);
+        }, 5000);
+      });
+      
+      const userPromise = getCurrentUser();
+      
+      const currentUser = await Promise.race([userPromise, timeoutPromise]);
+      
+      console.log('✅ Sessão verificada:', currentUser ? `${currentUser.nomeCompleto}` : 'Nenhum usuário logado');
       setUser(currentUser);
     } catch (error) {
-      console.error('Erro ao verificar sessão:', error);
+      console.error('❌ Erro ao verificar sessão:', error);
       setUser(null);
     } finally {
+      console.log('✅ Loading finalizado');
       setLoading(false);
     }
   };
