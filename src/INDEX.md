@@ -58,6 +58,9 @@ Guia completo de navegação pela documentação do Sistema de Gerenciamento de 
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | Guia para contribuidores | Desenvolvedores |
 | **[CHANGELOG.md](CHANGELOG.md)** | Histórico de versões | Todos |
 | **[GIT_COMMANDS.md](GIT_COMMANDS.md)** | Comandos Git essenciais | Desenvolvedores |
+| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Solução de problemas comuns | Desenvolvedores |
+| **[VERIFICACAO.md](VERIFICACAO.md)** | Checklist de verificação | Desenvolvedores |
+| **[CORRECOES_APLICADAS_PUBLISH.md](CORRECOES_APLICADAS_PUBLISH.md)** | Correções do problema de publish | Desenvolvedores |
 
 ### **⚖️ Legal e Créditos**
 
