@@ -1,6 +1,7 @@
 -- ============================================================
--- 🚀 SCRIPT RÁPIDO - Criar Evento + Certificado para Teste
+-- 🎯 COPIE E COLE ESTE SCRIPT COMPLETO NO SUPABASE
 -- ============================================================
+-- Cria evento + participação + certificado para teste
 -- Usuário: participante@exemplo.com
 -- ============================================================
 
@@ -13,15 +14,14 @@ INSERT INTO eventos (
 ) VALUES (
   'Workshop de React Avançado - Teste Token',
   'Evento de teste para validação de certificados com token único.',
-  '2025-11-15 09:00:00-03', -- Evento no passado (15 de novembro)
-  40, -- 40 horas
-  0.25, -- 25% de faltas permitidas
-  0, -- Gratuito
+  '2025-11-15 09:00:00-03',
+  40,
+  0.25,
+  0,
   'Certificamos que {nome} participou do evento {evento} com carga horária de {horas} horas.',
   'todos',
   'Centro de Convenções',
-  50,
-  50,
+  50, 50,
   'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
   (SELECT id FROM usuarios WHERE perfil = 'administrador' LIMIT 1)
 );
@@ -41,7 +41,7 @@ WHERE EXISTS (SELECT 1 FROM usuarios WHERE email = 'participante@exemplo.com');
 -- 3️⃣ Gerar certificado com token
 INSERT INTO certificados (participacao_id, data_emissao, url_pdf, is_revogado)
 SELECT 
-  p.id,
+  p.id, 
   '2025-11-21 10:00:00-03',
   'https://certificado-gerado-no-sistema.pdf',
   false
@@ -51,9 +51,7 @@ INNER JOIN eventos e ON p.evento_id = e.id
 WHERE u.email = 'participante@exemplo.com'
   AND e.nome = 'Workshop de React Avançado - Teste Token';
 
--- ============================================================
--- 🎯 COPIE O TOKEN ABAIXO:
--- ============================================================
+-- 4️⃣ COPIE O TOKEN ABAIXO:
 SELECT 
   '🔑 COPIE ESTE TOKEN:' AS instrucao,
   c.codigo_validacao AS token,
@@ -67,14 +65,3 @@ WHERE u.email = 'participante@exemplo.com'
   AND e.nome = 'Workshop de React Avançado - Teste Token'
 ORDER BY c.data_emissao DESC
 LIMIT 1;
-
--- ============================================================
--- 💡 COMO TESTAR:
--- ============================================================
--- 1. Execute este script no Supabase SQL Editor
--- 2. Copie o TOKEN da última consulta
--- 3. Login: participante@exemplo.com
--- 4. Vá em: Verificar Certificado
--- 5. Cole o token e clique em Verificar
--- 6. ✅ Deve exibir: Certificado Válido!
--- ============================================================

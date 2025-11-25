@@ -12,13 +12,13 @@
 -- ============================================================
 
 -- Primeiro, vamos ver se o usuário existe
-SELECT id, nome, email, tipo_usuario 
+SELECT id, nome, email, perfil
 FROM usuarios 
 WHERE email = 'participante@exemplo.com';
 
 -- Se não existir, descomente as linhas abaixo para criar:
 /*
-INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario)
+INSERT INTO usuarios (nome, email, senha_hash, perfil)
 VALUES (
   'João Silva Participante',
   'participante@exemplo.com',
@@ -35,26 +35,32 @@ INSERT INTO eventos (
   nome,
   descricao,
   data_inicio,
-  data_fim,
-  local,
-  vagas_disponiveis,
   duracao_horas,
-  valor_inscricao,
-  imagem_url,
-  criado_por
+  limite_faltas_percentual,
+  valor_evento,
+  texto_certificado,
+  perfil_academico_foco,
+  local,
+  capacidade_maxima,
+  vagas_disponiveis,
+  imagem_capa,
+  organizador_id
 ) VALUES (
   'Workshop de React Avançado - Edição Teste',
   'Workshop completo sobre React com hooks, context API, performance e testes. Evento já finalizado para testes de certificado.',
   '2025-11-15 09:00:00-03', -- Data no passado (15 de novembro)
-  '2025-11-20 18:00:00-03', -- Finalizou em 20 de novembro
+  40, -- 40 horas de duração (equivalente a 5 dias)
+  0.25, -- 25% de faltas permitidas
+  0, -- Evento gratuito para facilitar
+  'Certificamos que {nome} participou do evento {evento} com carga horária de {horas} horas.',
+  'todos',
   'Centro de Convenções - Sala 201',
   50,
-  40, -- 40 horas de duração
-  0, -- Evento gratuito para facilitar
+  50,
   'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
-  (SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1) -- Criado por um admin
+  (SELECT id FROM usuarios WHERE perfil = 'administrador' LIMIT 1) -- Criado por um admin
 )
-RETURNING id, nome, data_inicio, data_fim;
+RETURNING id, nome, data_inicio, duracao_horas;
 
 -- ============================================================
 -- PASSO 3: Inscrever o participante no evento
@@ -85,13 +91,13 @@ INSERT INTO participacoes (
 SELECT 
   participante_teste.id,
   evento_teste.id,
-  '2025-11-10 14:30:00-03', -- Inscrito antes do evento
-  'nao_requerido', -- Evento gratuito
-  true, -- Aprovado
-  8, -- 8 check-ins registrados
-  'Participação completa com presença satisfatória'
+  '2025-11-10 14:30:00-03', -- Inscrito 5 dias antes do evento
+  'nao_requerido', -- Evento gratuito, sem pagamento
+  TRUE, -- Aprovado
+  8, -- Número de check-ins realizados (exemplo)
+  'Participação completa e satisfatória'
 FROM evento_teste, participante_teste
-RETURNING id, usuario_id, evento_id, pagamento_status, is_aprovado, numero_presencas;
+RETURNING id, usuario_id, evento_id, is_aprovado;
 
 -- ============================================================
 -- PASSO 4: Criar registros de presença detalhados (opcional)
@@ -155,7 +161,7 @@ INSERT INTO certificados (
 SELECT 
   participacao_teste.id,
   '2025-11-21 10:00:00-03', -- Emitido no dia seguinte ao fim do evento
-  NULL, -- PDF será gerado pelo sistema
+  'https://certificado-gerado-no-sistema.pdf', -- PDF será gerado pelo sistema
   false -- Não revogado
 FROM participacao_teste
 RETURNING 
@@ -177,7 +183,6 @@ SELECT
   u.email AS "Email",
   e.nome AS "Evento",
   e.data_inicio AS "Início do Evento",
-  e.data_fim AS "Fim do Evento",
   e.duracao_horas AS "Carga Horária",
   p.numero_presencas AS "Check-ins",
   p.is_aprovado AS "Aprovado",
@@ -204,7 +209,7 @@ SELECT
   p.is_aprovado,
   p.numero_presencas AS presencas,
   CASE 
-    WHEN e.data_fim < NOW() THEN '✅ Evento finalizado'
+    WHEN (e.data_inicio + (e.duracao_horas || ' hours')::INTERVAL) < NOW() THEN '✅ Evento finalizado'
     ELSE '❌ Evento ainda não finalizou'
   END AS status_evento,
   CASE 
@@ -286,7 +291,7 @@ WHERE nome = 'Workshop de React Avançado - Edição Teste';
 
 10. Deve aparecer: ✅ Certificado Válido com todas as informações!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🧪 TESTE ALTERNATIVO (Verificar sem baixar certificado):
 
