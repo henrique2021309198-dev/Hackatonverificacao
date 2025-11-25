@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Download, CheckCircle2, Clock, XCircle, Award } from 'lucide-react';
+import { Calendar, MapPin, Download, CheckCircle2, Clock, XCircle, Award, QrCode } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
@@ -10,12 +10,14 @@ interface MyEventsPageProps {
   registrations: (Registration & { evento: Event })[];
   onEventClick: (eventId: string) => void;
   onDownloadCertificate: (registrationId: string) => void;
+  onCheckIn?: (eventId: string, eventoNome: string) => void;
 }
 
 export function MyEventsPage({
   registrations,
   onEventClick,
   onDownloadCertificate,
+  onCheckIn,
 }: MyEventsPageProps) {
   const now = new Date();
 
@@ -161,6 +163,16 @@ export function MyEventsPage({
                     Certificado Indisponível
                   </Button>
                 ) : null}
+
+                {onCheckIn && !eventEnded && (
+                  <Button
+                    className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => onCheckIn(evento.id, evento.nome)}
+                  >
+                    <QrCode className="size-4" />
+                    Check-in
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

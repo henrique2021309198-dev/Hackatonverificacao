@@ -202,8 +202,9 @@ export interface Registration {
   eventoId: string;
   usuarioId: string;
   dataInscricao: string;
-  statusPagamento: 'Pendente' | 'Confirmado' | 'Cancelado';
+  statusPagamento: 'pendente' | 'confirmado' | 'cancelado' | 'nao_requerido'; // Valores reais do banco
   valorPago?: number;
   certificadoEmitido: boolean;
   certificadoUrl?: string;
+  totalPresencas?: number; // Adicionado para rastrear check-ins
 }

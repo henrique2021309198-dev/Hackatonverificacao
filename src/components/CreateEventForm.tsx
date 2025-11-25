@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, Calendar as CalendarIcon, MapPin, Users, DollarSign } from 'lucide-react';
+import { Upload, Calendar as CalendarIcon, MapPin, Users, DollarSign, QrCode } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -222,22 +222,45 @@ export function CreateEventForm({ onCreateEvent, onCancel }: CreateEventFormProp
               </div>
 
               {!formData.gratuito && (
-                <div className="space-y-2">
-                  <Label htmlFor="valor">Valor da Inscrição (R$)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 size-4 text-gray-400" />
-                    <Input
-                      id="valor"
-                      type="number"
-                      placeholder="Ex: 50.00"
-                      value={formData.valor || ''}
-                      onChange={(e) =>
-                        setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })
-                      }
-                      className="pl-10"
-                      min={0}
-                      step={0.01}
-                    />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="valor">Valor da Inscrição (R$) *</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-3 size-4 text-gray-400" />
+                      <Input
+                        id="valor"
+                        type="number"
+                        placeholder="Ex: 50.00"
+                        value={formData.valor || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })
+                        }
+                        className="pl-10"
+                        min={0}
+                        step={0.01}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="chavePix">Chave PIX para Recebimento *</Label>
+                    <div className="relative">
+                      <QrCode className="absolute left-3 top-3 size-4 text-gray-400" />
+                      <Input
+                        id="chavePix"
+                        placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória"
+                        value={(formData as any).chavePix || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, chavePix: e.target.value } as any)
+                        }
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      💡 Esta chave PIX será usada pelos participantes para realizar o pagamento
+                    </p>
                   </div>
                 </div>
               )}

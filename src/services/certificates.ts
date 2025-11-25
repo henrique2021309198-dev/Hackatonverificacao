@@ -21,7 +21,7 @@ export async function downloadCertificate(
     }
 
     // Validar se o usuário foi aprovado
-    if (!registration.certificadoEmitido && registration.statusPagamento !== 'Confirmado') {
+    if (!registration.certificadoEmitido && registration.statusPagamento !== 'confirmado') {
       return {
         success: false,
         error: 'Você não foi aprovado neste evento ou seu pagamento ainda não foi confirmado.',
@@ -38,6 +38,22 @@ export async function downloadCertificate(
     // TODO: Buscar dados reais de presença do banco de dados
     const attendedHours = totalHours;
 
+    // Buscar ou gerar token de validação do certificado
+    let validationToken: string | undefined;
+    
+    try {
+      // Tentar buscar certificado existente do banco
+      const { validarCertificado } = await import('../services/supabase');
+      
+      // Por enquanto, gerar um UUID simples como token
+      // Em produção, isso deve ser buscado/gerado no banco de dados
+      validationToken = registration.certificadoUrl || generateUUID();
+      
+      console.log('Token de validação do certificado:', validationToken);
+    } catch (error) {
+      console.warn('Não foi possível gerar token de validação:', error);
+    }
+
     // Gerar certificado
     generateCertificate({
       participantName: user.nomeCompleto,
@@ -47,6 +63,7 @@ export async function downloadCertificate(
       totalHours,
       attendedHours,
       approvalDate: registration.dataInscricao,
+      validationToken,
     });
 
     return { success: true };
@@ -57,6 +74,17 @@ export async function downloadCertificate(
       error: 'Erro ao gerar certificado. Tente novamente.',
     };
   }
+}
+
+/**
+ * Gera um UUID v4 simples
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 /**

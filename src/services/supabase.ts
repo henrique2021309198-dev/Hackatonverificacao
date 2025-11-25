@@ -55,6 +55,7 @@ function mapEventoToEvent(evento: Evento): Event {
     vagas: evento.vagas_disponiveis ?? 50,
     gratuito: evento.valor_evento === 0,
     valor: evento.valor_evento > 0 ? evento.valor_evento : undefined,
+    chavePix: evento.chave_pix || undefined,
     imagemCapa: evento.imagem_capa || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
     status: (evento.status as EventStatus) || 'Publicado',
     organizadorId: evento.organizador_id || '1',
@@ -72,12 +73,11 @@ function mapParticipacaoToRegistration(
     eventoId: participacao.evento_id.toString(),
     usuarioId: participacao.usuario_id,
     dataInscricao: participacao.inscrito_em,
-    statusPagamento: 
-      participacao.pagamento_status === 'confirmado' ? 'Confirmado' :
-      participacao.pagamento_status === 'pendente' ? 'Pendente' : 'Cancelado',
+    statusPagamento: participacao.pagamento_status, // Mantém o status em minúsculo como está no banco
     valorPago: evento?.valor_evento,
     certificadoEmitido: participacao.is_aprovado,
     certificadoUrl: undefined,
+    totalPresencas: participacao.numero_presencas, // Mapear campo de presenças
   };
 }
 
@@ -696,6 +696,212 @@ export async function validarCertificado(codigoValidacao: string): Promise<Certi
   }
 }
 
+// ==================== CHECK-IN / PRESENÇA ====================
+
+/**
+ * Registra check-in de um participante em um evento
+ * @param eventoId ID do evento
+ * @param usuarioId ID do usuário
+ * @param qrCode Dados do QR Code escaneado
+ * @param sessaoNome Nome da sessão atual (opcional)
+ * @returns Sucesso ou erro
+ */
+export async function registerCheckIn(
+  eventoId: string,
+  usuarioId: string,
+  qrCode: string,
+  sessaoNome?: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    console.log('📝 Iniciando check-in:', { eventoId, usuarioId, qrCode });
+
+    // 1. Validar formato do QR Code (deve conter o ID do evento)
+    const qrCodeLower = qrCode.toLowerCase();
+    if (!qrCodeLower.includes(eventoId) && !qrCodeLower.includes(`evento-${eventoId}`)) {
+      console.error('❌ QR Code não corresponde ao evento');
+      return { 
+        success: false, 
+        error: 'QR Code inválido para este evento. Escaneie o QR Code correto.' 
+      };
+    }
+
+    // 2. Buscar evento e validar se está em andamento
+    const { data: evento, error: eventoError } = await supabase
+      .from('eventos')
+      .select('id, nome, data_inicio, duracao_horas')
+      .eq('id', parseInt(eventoId))
+      .single();
+
+    if (eventoError || !evento) {
+      console.error('❌ Evento não encontrado:', eventoError);
+      return { success: false, error: 'Evento não encontrado.' };
+    }
+
+    // Verificar se evento está em andamento
+    const now = new Date();
+    const dataInicio = new Date(evento.data_inicio);
+    const dataFim = new Date(dataInicio);
+    dataFim.setHours(dataFim.getHours() + evento.duracao_horas);
+
+    if (now < dataInicio) {
+      return { 
+        success: false, 
+        error: 'O evento ainda não começou. Check-in indisponível.' 
+      };
+    }
+
+    if (now > dataFim) {
+      return { 
+        success: false, 
+        error: 'O evento já terminou. Check-in não é mais permitido.' 
+      };
+    }
+
+    // 3. Buscar participação do usuário no evento
+    const { data: participacao, error: participacaoError } = await supabase
+      .from('participacoes')
+      .select('id, usuario_id, evento_id, numero_presencas, pagamento_status')
+      .eq('evento_id', parseInt(eventoId))
+      .eq('usuario_id', usuarioId)
+      .single();
+
+    if (participacaoError || !participacao) {
+      console.error('❌ Participação não encontrada:', participacaoError);
+      return { 
+        success: false, 
+        error: 'Você não está inscrito neste evento. Faça a inscrição primeiro.' 
+      };
+    }
+
+    // 4. Verificar se pagamento está confirmado (se não for gratuito)
+    if (participacao.pagamento_status === 'pendente') {
+      return {
+        success: false,
+        error: 'Seu pagamento ainda está pendente. Confirme o pagamento antes de fazer check-in.'
+      };
+    }
+
+    // 5. Verificar se já fez check-in hoje
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+
+    const { data: checkinsHoje, error: checkinsError } = await supabase
+      .from('presencas_detalhes')
+      .select('id')
+      .eq('participacao_id', participacao.id)
+      .gte('data_registro', hoje.toISOString())
+      .lt('data_registro', amanha.toISOString());
+
+    if (checkinsError) {
+      console.error('⚠️ Erro ao verificar check-ins:', checkinsError);
+      // Continuar mesmo com erro na verificação
+    }
+
+    if (checkinsHoje && checkinsHoje.length > 0) {
+      return {
+        success: false,
+        error: 'Você já fez check-in hoje neste evento.'
+      };
+    }
+
+    // 6. Determinar nome da sessão
+    const diasDesdeInicio = Math.floor((now.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
+    const nomeSessao = sessaoNome || `Dia ${diasDesdeInicio + 1} - ${now.getHours() < 12 ? 'Manhã' : now.getHours() < 18 ? 'Tarde' : 'Noite'}`;
+
+    // 7. Inserir registro de presença
+    const { data: presenca, error: presencaError } = await supabase
+      .from('presencas_detalhes')
+      .insert({
+        participacao_id: participacao.id,
+        data_registro: now.toISOString(),
+        sessao_nome: nomeSessao,
+        registrado_por: usuarioId,
+      })
+      .select()
+      .single();
+
+    if (presencaError) {
+      console.error('❌ Erro ao registrar presença:', presencaError);
+      return { 
+        success: false, 
+        error: 'Erro ao registrar check-in. Tente novamente.' 
+      };
+    }
+
+    console.log('✅ Presença registrada:', presenca);
+
+    // 8. Atualizar contador de presenças
+    const novoNumeroPresencas = participacao.numero_presencas + 1;
+    const { error: updateError } = await supabase
+      .from('participacoes')
+      .update({ numero_presencas: novoNumeroPresencas })
+      .eq('id', participacao.id);
+
+    if (updateError) {
+      console.error('⚠️ Erro ao atualizar contador:', updateError);
+      // Não retornar erro, pois a presença já foi registrada
+    }
+
+    console.log(`✅ Check-in realizado! Total de presenças: ${novoNumeroPresencas}`);
+
+    return {
+      success: true,
+      message: `Check-in realizado com sucesso! Presença ${novoNumeroPresencas} registrada.`
+    };
+
+  } catch (err: any) {
+    console.error('❌ Erro inesperado ao fazer check-in:', err);
+    return { 
+      success: false, 
+      error: 'Erro inesperado ao processar check-in. Tente novamente.' 
+    };
+  }
+}
+
+/**
+ * Busca histórico de check-ins de um participante em um evento
+ */
+export async function getCheckInHistory(
+  eventoId: string,
+  usuarioId: string
+): Promise<{ checkins: any[]; total: number; error?: string }> {
+  try {
+    // Buscar participação
+    const { data: participacao, error: participacaoError } = await supabase
+      .from('participacoes')
+      .select('id')
+      .eq('evento_id', parseInt(eventoId))
+      .eq('usuario_id', usuarioId)
+      .single();
+
+    if (participacaoError || !participacao) {
+      return { checkins: [], total: 0, error: 'Participação não encontrada.' };
+    }
+
+    // Buscar check-ins
+    const { data: checkins, error: checkinsError } = await supabase
+      .from('presencas_detalhes')
+      .select('id, data_registro, sessao_nome')
+      .eq('participacao_id', participacao.id)
+      .order('data_registro', { ascending: false });
+
+    if (checkinsError) {
+      console.error('Erro ao buscar check-ins:', checkinsError);
+      return { checkins: [], total: 0, error: checkinsError.message };
+    }
+
+    return {
+      checkins: checkins || [],
+      total: checkins?.length || 0
+    };
+  } catch (err: any) {
+    console.error('Erro ao buscar histórico:', err);
+    return { checkins: [], total: 0, error: err.message };
+  }
+}
+
 // ==================== DASHBOARD STATS ====================
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -762,4 +968,62 @@ export async function uploadEventImage(file: File): Promise<{ url: string; error
 export async function uploadUserAvatar(file: File, userId: string): Promise<{ url: string; error: null } | { url: null; error: string }> {
   // TODO: Implementar com Supabase Storage quando necessário
   return { url: URL.createObjectURL(file), error: null };
+}
+
+// ==================== GERENCIAMENTO DE INSCRIÇÕES (ADMIN) ====================
+
+/**
+ * Atualizar status de pagamento de uma inscrição
+ */
+export async function updatePaymentStatus(
+  registrationId: string,
+  status: 'confirmado' | 'cancelado'
+): Promise<{ error: null } | { error: string }> {
+  try {
+    console.log(`📝 Atualizando status de pagamento: ${registrationId} para ${status}`);
+    
+    const { error } = await supabase
+      .from('participacoes')
+      .update({ pagamento_status: status })
+      .eq('id', registrationId);
+    
+    if (error) {
+      console.error('❌ Erro ao atualizar status de pagamento:', error);
+      return { error: error.message };
+    }
+    
+    console.log('✅ Status de pagamento atualizado com sucesso');
+    return { error: null };
+  } catch (err: any) {
+    console.error('❌ Erro inesperado ao atualizar pagamento:', err);
+    return { error: 'Erro inesperado ao atualizar pagamento' };
+  }
+}
+
+/**
+ * Atualizar total de presenças de um participante manualmente
+ */
+export async function updateAttendance(
+  registrationId: string,
+  newCheckInsCount: number
+): Promise<{ error: null } | { error: string }> {
+  try {
+    console.log(`📝 Atualizando presenças: ${registrationId} para ${newCheckInsCount}`);
+    
+    const { error } = await supabase
+      .from('participacoes')
+      .update({ total_presencas: newCheckInsCount })
+      .eq('id', registrationId);
+    
+    if (error) {
+      console.error('❌ Erro ao atualizar presenças:', error);
+      return { error: error.message };
+    }
+    
+    console.log('✅ Presenças atualizadas com sucesso');
+    return { error: null };
+  } catch (err: any) {
+    console.error('❌ Erro inesperado ao atualizar presenças:', err);
+    return { error: 'Erro inesperado ao atualizar presenças' };
+  }
 }

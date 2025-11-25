@@ -8,6 +8,7 @@ interface CertificateData {
   totalHours: number;
   attendedHours: number;
   approvalDate?: string;
+  validationToken?: string; // Token de validação do certificado
 }
 
 /**
@@ -22,6 +23,7 @@ export function generateCertificate(data: CertificateData): void {
     totalHours,
     attendedHours,
     approvalDate,
+    validationToken,
   } = data;
 
   // Criar documento PDF em formato paisagem (landscape)
@@ -175,6 +177,19 @@ export function generateCertificate(data: CertificateData): void {
   doc.text('Coordenação de Eventos Acadêmicos', centerX, signatureY + 5, { align: 'center' });
 
   // ==================== RODAPÉ INSTITUCIONAL ====================
+  // Token de validação (se existir, mostrar ANTES do texto institucional)
+  if (validationToken) {
+    doc.setFontSize(7);
+    doc.setTextColor(41, 98, 255); // Azul para destacar
+    doc.setFont('helvetica', 'bold');
+    doc.text(
+      `Código de Validação: ${validationToken}`,
+      centerX,
+      pageHeight - 20,
+      { align: 'center' }
+    );
+  }
+
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.setFont('helvetica', 'italic');
@@ -184,6 +199,19 @@ export function generateCertificate(data: CertificateData): void {
     pageHeight - 15,
     { align: 'center' }
   );
+
+  // Instrução de verificação
+  if (validationToken) {
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'italic');
+    doc.text(
+      'Verifique a autenticidade deste certificado na plataforma usando o código acima',
+      centerX,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
 
   // ==================== SALVAR PDF ====================
   const fileName = `certificado-${sanitizeFileName(eventName)}-${sanitizeFileName(participantName)}.pdf`;

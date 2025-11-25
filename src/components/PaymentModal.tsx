@@ -1,8 +1,6 @@
-import { useState } from 'react';
-import { CreditCard, Lock, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { QrCode, Copy, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 import {
   Dialog,
   DialogContent,
@@ -11,124 +9,73 @@ import {
   DialogTitle,
 } from './ui/dialog';
 import { Separator } from './ui/separator';
-import type { Event, PaymentData } from '../types';
+import { Alert, AlertDescription } from './ui/alert';
+import type { Event } from '../types';
 
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   event: Event;
-  onConfirmPayment: (paymentData: PaymentData) => void;
+  onConfirmPayment: () => void;
 }
 
 export function PaymentModal({ open, onClose, event, onConfirmPayment }: PaymentModalProps) {
   const [step, setStep] = useState<'payment' | 'success'>('payment');
-  const [paymentData, setPaymentData] = useState<PaymentData>({
-    numeroCartao: '',
-    nomeCartao: '',
-    validade: '',
-    cvv: '',
-    cpf: '',
-  });
+  const [copied, setCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutos em segundos
 
-  const [errors, setErrors] = useState<Partial<Record<keyof PaymentData, string>>>({});
+  // Timer de expiração
+  useEffect(() => {
+    if (!open || step !== 'payment') return;
 
-  const formatCardNumber = (value: string): string => {
-    const cleaned = value.replace(/\D/g, '');
-    const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
-    return formatted.substring(0, 19); // 16 dígitos + 3 espaços
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [open, step]);
+
+  // Resetar ao abrir
+  useEffect(() => {
+    if (open) {
+      setStep('payment');
+      setTimeLeft(600);
+      setCopied(false);
+    }
+  }, [open]);
+
+  const handleCopyPix = () => {
+    const chavePix = (event as any).chavePix || 'pix@exemplo.com';
+    navigator.clipboard.writeText(chavePix);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatValidade = (value: string): string => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      return `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`;
-    }
-    return cleaned;
-  };
-
-  const formatCPF = (value: string): string => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 11) {
-      return cleaned
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    return value;
-  };
-
-  const handleChange = (field: keyof PaymentData, value: string) => {
-    let formattedValue = value;
-
-    if (field === 'numeroCartao') {
-      formattedValue = formatCardNumber(value);
-    } else if (field === 'validade') {
-      formattedValue = formatValidade(value);
-    } else if (field === 'cvv') {
-      formattedValue = value.replace(/\D/g, '').substring(0, 4);
-    } else if (field === 'cpf') {
-      formattedValue = formatCPF(value);
-    }
-
-    setPaymentData((prev) => ({ ...prev, [field]: formattedValue }));
-    setErrors((prev) => ({ ...prev, [field]: '' }));
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof PaymentData, string>> = {};
-
-    const cardNumberClean = paymentData.numeroCartao.replace(/\s/g, '');
-    if (cardNumberClean.length !== 16) {
-      newErrors.numeroCartao = 'Número do cartão inválido';
-    }
-
-    if (!paymentData.nomeCartao.trim()) {
-      newErrors.nomeCartao = 'Nome do titular é obrigatório';
-    }
-
-    const validadeClean = paymentData.validade.replace(/\D/g, '');
-    if (validadeClean.length !== 4) {
-      newErrors.validade = 'Validade inválida';
-    }
-
-    if (paymentData.cvv.length < 3) {
-      newErrors.cvv = 'CVV inválido';
-    }
-
-    const cpfClean = paymentData.cpf.replace(/\D/g, '');
-    if (cpfClean.length !== 11) {
-      newErrors.cpf = 'CPF inválido';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      // Simular processamento de pagamento
-      setTimeout(() => {
-        setStep('success');
-        setTimeout(() => {
-          onConfirmPayment(paymentData);
-          handleClose();
-        }, 2000);
-      }, 1500);
-    }
+  const handleConfirmPayment = () => {
+    setStep('success');
+    setTimeout(() => {
+      onConfirmPayment();
+      handleClose();
+    }, 2000);
   };
 
   const handleClose = () => {
     setStep('payment');
-    setPaymentData({
-      numeroCartao: '',
-      nomeCartao: '',
-      validade: '',
-      cvv: '',
-      cpf: '',
-    });
-    setErrors({});
+    setTimeLeft(600);
+    setCopied(false);
     onClose();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (step === 'success') {
@@ -150,13 +97,16 @@ export function PaymentModal({ open, onClose, event, onConfirmPayment }: Payment
     );
   }
 
+  const chavePix = (event as any).chavePix || 'Chave PIX não configurada';
+  const hasPixKey = !!(event as any).chavePix;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Finalizar Inscrição</DialogTitle>
+          <DialogTitle>Pagamento via PIX</DialogTitle>
           <DialogDescription>
-            Complete o pagamento para confirmar sua inscrição no evento
+            Escaneie o QR Code ou copie a chave PIX para realizar o pagamento
           </DialogDescription>
         </DialogHeader>
 
@@ -171,89 +121,103 @@ export function PaymentModal({ open, onClose, event, onConfirmPayment }: Payment
           </div>
         </div>
 
-        {/* Formulário de Pagamento */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="numeroCartao">Número do Cartão</Label>
-            <div className="relative">
-              <CreditCard className="absolute left-3 top-3 size-4 text-gray-400" />
-              <Input
-                id="numeroCartao"
-                placeholder="0000 0000 0000 0000"
-                value={paymentData.numeroCartao}
-                onChange={(e) => handleChange('numeroCartao', e.target.value)}
-                className="pl-10"
-              />
+        {/* Aviso de Chave PIX não configurada */}
+        {!hasPixKey && (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertDescription>
+              A chave PIX deste evento não foi configurada. Entre em contato com a organização.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Timer de Expiração */}
+        {hasPixKey && (
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+            <Clock className="size-4" />
+            <span>Tempo restante para pagamento: <strong>{formatTime(timeLeft)}</strong></span>
+          </div>
+        )}
+
+        {/* QR Code PIX (Placeholder) */}
+        {hasPixKey && (
+          <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-6">
+            <div className="flex size-48 items-center justify-center rounded-lg bg-white p-4 border-2 border-gray-200">
+              <QrCode className="size-32 text-gray-400" />
             </div>
-            {errors.numeroCartao && (
-              <p className="text-sm text-red-600">{errors.numeroCartao}</p>
+            <p className="text-center text-sm text-gray-600">
+              📱 Abra o app do seu banco e escaneie o QR Code acima
+            </p>
+            <p className="text-xs text-gray-500">
+              💡 O QR Code deve ser gerado pela instituição financeira com a chave PIX abaixo
+            </p>
+          </div>
+        )}
+
+        {/* Chave PIX para Copiar */}
+        {hasPixKey && (
+          <div className="space-y-2">
+            <h3 className="text-sm text-gray-600">Ou copie a chave PIX:</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 rounded-lg border bg-gray-50 p-3">
+                <p className="break-all text-sm text-gray-900">{chavePix}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleCopyPix}
+                className={copied ? 'bg-green-50 border-green-500' : ''}
+              >
+                {copied ? (
+                  <CheckCircle2 className="size-4 text-green-600" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+              </Button>
+            </div>
+            {copied && (
+              <p className="text-xs text-green-600">✅ Chave PIX copiada!</p>
             )}
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="nomeCartao">Nome do Titular</Label>
-            <Input
-              id="nomeCartao"
-              placeholder="Nome como está no cartão"
-              value={paymentData.nomeCartao}
-              onChange={(e) => handleChange('nomeCartao', e.target.value.toUpperCase())}
-            />
-            {errors.nomeCartao && <p className="text-sm text-red-600">{errors.nomeCartao}</p>}
+        {/* Instruções */}
+        {hasPixKey && (
+          <div className="rounded-lg bg-blue-50 p-4">
+            <h3 className="mb-2 text-sm text-blue-900">📋 Como pagar:</h3>
+            <ol className="space-y-1 text-sm text-blue-800">
+              <li>1. Abra o app do seu banco</li>
+              <li>2. Selecione a opção PIX</li>
+              <li>3. Escolha "Pix Copia e Cola" ou escaneie o QR Code</li>
+              <li>4. Cole a chave PIX copiada</li>
+              <li>5. Verifique o valor: <strong>R$ {event.valor?.toFixed(2)}</strong></li>
+              <li>6. Confirme o pagamento</li>
+              <li>7. Clique em "Já Paguei" abaixo</li>
+            </ol>
           </div>
+        )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="validade">Validade</Label>
-              <Input
-                id="validade"
-                placeholder="MM/AA"
-                value={paymentData.validade}
-                onChange={(e) => handleChange('validade', e.target.value)}
-                maxLength={5}
-              />
-              {errors.validade && <p className="text-sm text-red-600">{errors.validade}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cvv">CVV</Label>
-              <Input
-                id="cvv"
-                type="password"
-                placeholder="123"
-                value={paymentData.cvv}
-                onChange={(e) => handleChange('cvv', e.target.value)}
-                maxLength={4}
-              />
-              {errors.cvv && <p className="text-sm text-red-600">{errors.cvv}</p>}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cpf">CPF do Titular</Label>
-            <Input
-              id="cpf"
-              placeholder="000.000.000-00"
-              value={paymentData.cpf}
-              onChange={(e) => handleChange('cpf', e.target.value)}
-              maxLength={14}
-            />
-            {errors.cpf && <p className="text-sm text-red-600">{errors.cpf}</p>}
-          </div>
-
-          <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
-            <Lock className="size-4" />
-            <span>Seus dados estão protegidos com criptografia de ponta a ponta</span>
-          </div>
-
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-              Cancelar
+        {/* Botões de Ação */}
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+            Cancelar
+          </Button>
+          {hasPixKey && (
+            <Button
+              type="button"
+              onClick={handleConfirmPayment}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+            >
+              ✅ Já Paguei
             </Button>
-            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-              Confirmar Pagamento
-            </Button>
-          </div>
-        </form>
+          )}
+        </div>
+
+        {/* Aviso */}
+        <p className="text-center text-xs text-gray-500">
+          ⚠️ Clique em "Já Paguei" somente após confirmar o pagamento no seu banco
+        </p>
       </DialogContent>
     </Dialog>
   );

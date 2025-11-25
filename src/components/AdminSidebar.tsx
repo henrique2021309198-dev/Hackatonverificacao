@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calendar, Users, Settings, FileText } from 'lucide-react';
+import { LayoutDashboard, Calendar, Settings, FileText, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface AdminSidebarProps {
@@ -10,7 +10,7 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'eventos', label: 'Eventos', icon: Calendar },
   { id: 'criar-evento', label: 'Criar Evento', icon: FileText },
-  { id: 'usuarios', label: 'Usuários', icon: Users },
+  { id: 'verificar-certificado', label: 'Verificar Certificado', icon: Shield },
   { id: 'configuracoes', label: 'Configurações', icon: Settings },
 ];
 

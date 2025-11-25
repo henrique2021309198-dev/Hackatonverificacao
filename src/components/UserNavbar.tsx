@@ -1,4 +1,4 @@
-import { Home, Calendar, User } from 'lucide-react';
+import { Home, Calendar, User, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface UserNavbarProps {
@@ -9,6 +9,7 @@ interface UserNavbarProps {
 const menuItems = [
   { id: 'home', label: 'Eventos', icon: Home },
   { id: 'meus-eventos', label: 'Meus Eventos', icon: Calendar },
+  { id: 'verificar-certificado', label: 'Verificar Certificado', icon: Shield },
   { id: 'perfil', label: 'Perfil', icon: User },
 ];
 
